@@ -1,3 +1,4 @@
+
 import os
 import hmac
 from pathlib import Path
@@ -21,9 +22,7 @@ RAIZ = Path(__file__).resolve().parents[1]
 
 @app.get("/")
 def inicio():
-    return FileResponse(
-        RAIZ / "templates" / "index.html"
-    )
+    return FileResponse(RAIZ / "templates" / "index.html")
 
 
 @app.get("/api/estado")
@@ -44,7 +43,7 @@ def investigar(
     x_research_token: str | None = Header(default=None)
 ):
 
-    # Protección 1: desactivar investigaciones de pago
+    # Protección 1: investigaciones habilitadas
     habilitado = (
         os.getenv("ENABLE_PAID_RESEARCH", "false").lower() == "true"
     )
@@ -52,16 +51,16 @@ def investigar(
     if not habilitado:
         raise HTTPException(
             status_code=403,
-            detail="Las investigaciones están desactivadas en esta demostración."
+            detail="Las investigaciones están desactivadas."
         )
 
-    # Protección 2: exigir autorización privada
+    # Protección 2: token privado
     token_servidor = os.getenv("RESEARCH_ACCESS_TOKEN")
 
     if not token_servidor:
         raise HTTPException(
             status_code=503,
-            detail="El acceso a investigaciones no está configurado."
+            detail="El acceso privado no está configurado."
         )
 
     if not x_research_token or not hmac.compare_digest(
@@ -73,14 +72,7 @@ def investigar(
             detail="No autorizado para realizar investigaciones."
         )
 
-    # Prueba temporal de autenticación
-    if solicitud.pregunta == "__TEST_AUTH__":
-         return {
-        "autorizado": True,
-        "mensaje": "Token privado aceptado correctamente"
-    }
-
-    # Ejecutar la investigación
+    # Ejecutar investigación con OpenAI
     try:
         servicio = InvestigadorService()
 
@@ -94,13 +86,26 @@ def investigar(
 
     except Exception as error:
         print(
-            "Error de investigación:",
-            type(error).__name__
+            "RADAR TIC - Tipo de error:",
+            type(error).__name__,
+            flush=True
+        )
+
+        print(
+            "RADAR TIC - HTTP externo:",
+            getattr(error, "status_code", None),
+            flush=True
+        )
+
+        print(
+            "RADAR TIC - Código externo:",
+            getattr(error, "code", None),
+            flush=True
         )
 
         raise HTTPException(
             status_code=500,
-            detail="No se pudo completar la investigación."
+            detail="No se pudo completar la investigación. Revisa los logs."
         )
 
 
