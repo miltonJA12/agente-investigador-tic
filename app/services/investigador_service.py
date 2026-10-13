@@ -1,3 +1,4 @@
+
 from openai import OpenAI
 
 from app.core.config import OPENAI_API_KEY, OPENAI_MODEL
@@ -7,14 +8,24 @@ class InvestigadorService:
 
     def __init__(self):
         if not OPENAI_API_KEY:
-            raise ValueError("Falta OPENAI_API_KEY en .env")
+            raise ValueError(
+                "Falta configurar OPENAI_API_KEY en el servidor."
+            )
 
-        self.client = OpenAI(api_key=OPENAI_API_KEY)
+        self.client = OpenAI(
+            api_key=OPENAI_API_KEY,
+            timeout=180.0,
+            max_retries=0
+        )
 
-    def investigar(self, pregunta: str, modo: str = "rapido", usar_web: bool = True):
+    def investigar(
+        self,
+        pregunta: str,
+        modo: str = "rapido",
+        usar_web: bool = True
+    ):
 
         instrucciones = """
-        
 Eres Radar TIC, un agente investigador especializado en
 Tecnologías de la Información y Comunicación.
 
@@ -101,16 +112,26 @@ en la evidencia encontrada.
 
 IMPORTANTE:
 No cambies los nombres ni la numeración de las secciones.
-
-        """
+"""
 
         modos = {
-            "rapido": "Realiza una investigación breve y clara.",
-            "comparativo": "Compara perspectivas, ventajas, desventajas y diferencias.",
-            "profundo": "Realiza una investigación detallada con análisis y evidencias."
+            "rapido": (
+                "Realiza una investigación breve y clara."
+            ),
+            "comparativo": (
+                "Compara perspectivas, ventajas, "
+                "desventajas y diferencias."
+            ),
+            "profundo": (
+                "Realiza una investigación detallada "
+                "con análisis y evidencias."
+            )
         }
 
-        instrucciones += "\n" + modos.get(modo, modos["rapido"])
+        instrucciones += "\n" + modos.get(
+            modo,
+            modos["rapido"]
+        )
 
         parametros = {
             "model": OPENAI_MODEL,
@@ -126,35 +147,100 @@ No cambies los nombres ni la numeración de las secciones.
                     "search_context_size": "low"
                 }
             ]
-        print("RADAR TIC - Modelo utilizado:", OPENAI_MODEL, flush=True)
-        print("Estado:", respuesta.status, flush=True)
-        print("Motivo:", respuesta.incomplete_details, flush=True)
-        print("Uso:", respuesta.usage.model_dump() if respuesta.usage else None, flush=True)
-        respuesta = self.client.responses.create(**parametros)
 
+        # 1. Mostrar el modelo configurado
+        print(
+            "RADAR TIC - Modelo utilizado:",
+            OPENAI_MODEL,
+            flush=True
+        )
+
+        # 2. Consultar OpenAI
+        respuesta = self.client.responses.create(
+            **parametros
+        )
+
+        # 3. Diagnosticar la respuesta
+        print(
+            "RADAR TIC - Estado:",
+            respuesta.status,
+            flush=True
+        )
+
+        print(
+            "RADAR TIC - Motivo incompleto:",
+            respuesta.incomplete_details,
+            flush=True
+        )
+
+        if respuesta.usage:
+            print(
+                "RADAR TIC - Uso de tokens:",
+                respuesta.usage.model_dump(),
+                flush=True
+            )
+
+        # 4. Comprobar que existe texto
+        reporte = (respuesta.output_text or "").strip()
+
+        if not reporte:
+            raise RuntimeError(
+                "OpenAI no generó texto. "
+                f"Estado: {respuesta.status}. "
+                f"Motivo: {respuesta.incomplete_details}"
+            )
+
+        # 5. Extraer fuentes consultadas
         fuentes = []
         urls_vistas = set()
 
         for item in respuesta.output:
+
             if getattr(item, "type", None) != "message":
                 continue
 
-            for contenido in getattr(item, "content", []):
-                for anotacion in getattr(contenido, "annotations", []):
-                    if getattr(anotacion, "type", None) == "url_citation":
-                        url = getattr(anotacion, "url", None)
+            for contenido in getattr(
+                item,
+                "content",
+                []
+            ):
+
+                for anotacion in getattr(
+                    contenido,
+                    "annotations",
+                    []
+                ):
+
+                    if getattr(
+                        anotacion,
+                        "type",
+                        None
+                    ) == "url_citation":
+
+                        url = getattr(
+                            anotacion,
+                            "url",
+                            None
+                        )
 
                         if url and url not in urls_vistas:
+
                             urls_vistas.add(url)
+
                             fuentes.append({
-                                "titulo": getattr(anotacion, "title", url),
+                                "titulo": getattr(
+                                    anotacion,
+                                    "title",
+                                    url
+                                ),
                                 "url": url
                             })
 
+        # 6. Devolver el reporte completo
         return {
             "pregunta": pregunta,
             "modo": modo,
-            "reporte": respuesta.output_text,
+            "reporte": reporte,
             "fuentes": fuentes,
             "total_fuentes": len(fuentes)
         }
