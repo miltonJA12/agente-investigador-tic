@@ -1,2 +1,15 @@
+[project]
+name = "agente-investigador-tic"
+version = "0.1.0"
+description = "Radar TIC - Agente investigador con FastAPI y OpenAI"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "fastapi>=0.115.0",
+    "uvicorn>=0.30.0",
+    "openai>=1.0.0",
+    "python-dotenv>=1.0.0",
+    "pydantic>=2.0.0"
+]
+
 [tool.vercel]
 entrypoint = "app.main:app"
