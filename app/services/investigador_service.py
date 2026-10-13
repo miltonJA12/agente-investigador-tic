@@ -113,17 +113,19 @@ No cambies los nombres ni la numeración de las secciones.
         instrucciones += "\n" + modos.get(modo, modos["rapido"])
 
         parametros = {
-    "model": OPENAI_MODEL,
-    "instructions": instrucciones,
-    "input": pregunta,
-    "max_output_tokens": 2500
-}
+            "model": OPENAI_MODEL,
+            "instructions": instrucciones,
+            "input": pregunta,
+            "max_output_tokens": 2500
+        }
 
         if usar_web:
-            parametros["tools"] = [{
-    "type": "web_search",
-    "search_context_size": "low"
-}]
+            parametros["tools"] = [
+                {
+                    "type": "web_search",
+                    "search_context_size": "low"
+                }
+            ]
 
         respuesta = self.client.responses.create(**parametros)
 
