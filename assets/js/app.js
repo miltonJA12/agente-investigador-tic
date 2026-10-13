@@ -26,11 +26,26 @@ btnInvestigar.addEventListener("click", (evento) => {
 });
 
 
+
 async function investigar() {
     const textoPregunta = pregunta.value.trim();
 
     if (!textoPregunta) {
         mostrarError("Escribe una pregunta de investigación.");
+        return;
+    }
+
+    // Solicitar acceso privado al usuario autorizado
+    const tokenAcceso = window.prompt(
+        "Radar TIC - Introduce tu clave privada de investigación:"
+    );
+
+    if (tokenAcceso === null) {
+        return;
+    }
+
+    if (!tokenAcceso.trim()) {
+        mostrarError("Debes introducir tu clave privada.");
         return;
     }
 
@@ -45,12 +60,14 @@ async function investigar() {
         const respuesta = await fetch("/api/investigar", {
             method: "POST",
             headers: {
-                "Content-Type": "application/json"
+                "Content-Type": "application/json",
+                "x-research-token": tokenAcceso.trim()
             },
             body: JSON.stringify({
                 pregunta: textoPregunta,
                 modo: "rapido"
-            })
+            }),
+            cache: "no-store"
         });
 
         if (!respuesta.ok) {
@@ -58,10 +75,16 @@ async function investigar() {
 
             try {
                 const datosError = await respuesta.json();
+
                 if (typeof datosError.detail === "string") {
                     mensaje = datosError.detail;
                 }
-            } catch {}
+            } catch (errorLectura) {
+                console.error(
+                    "No se pudo leer el error del servidor:",
+                    errorLectura
+                );
+            }
 
             throw new Error(mensaje);
         }
@@ -100,6 +123,7 @@ async function investigar() {
         btnInvestigar.disabled = false;
     }
 }
+
 
 
 async function procesarStream(respuesta) {
