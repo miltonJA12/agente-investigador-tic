@@ -127,6 +127,9 @@ No cambies los nombres ni la numeración de las secciones.
                 }
             ]
         print("RADAR TIC - Modelo utilizado:", OPENAI_MODEL, flush=True)
+        print("Estado:", respuesta.status, flush=True)
+        print("Motivo:", respuesta.incomplete_details, flush=True)
+        print("Uso:", respuesta.usage.model_dump() if respuesta.usage else None, flush=True)
         respuesta = self.client.responses.create(**parametros)
 
         fuentes = []
