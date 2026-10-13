@@ -126,7 +126,7 @@ No cambies los nombres ni la numeración de las secciones.
                     "search_context_size": "low"
                 }
             ]
-
+        print("RADAR TIC - Modelo utilizado:", OPENAI_MODEL, flush=True)
         respuesta = self.client.responses.create(**parametros)
 
         fuentes = []
