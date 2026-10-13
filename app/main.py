@@ -73,6 +73,13 @@ def investigar(
             detail="No autorizado para realizar investigaciones."
         )
 
+    # Prueba temporal de autenticación
+    if solicitud.pregunta == "__TEST_AUTH__":
+         return {
+        "autorizado": True,
+        "mensaje": "Token privado aceptado correctamente"
+    }
+
     # Ejecutar la investigación
     try:
         servicio = InvestigadorService()
